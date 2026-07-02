@@ -1,7 +1,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { useHrState } from '../composables/useHrState.js'
+import { useHrState } from '../composables/userHrState.js'
 
 const props = defineProps({
   employeeSessionId: { type: Number, required: true }

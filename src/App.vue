@@ -1,11 +1,3 @@
-<!--
-  =========================================================================
-  OWNED BY: PERSON A (Auth & Dashboard / Integration Lead)
-  This file is now just a "shell" — it decides WHICH screen to show
-  (guest login / HR portal / employee portal) and which tab is active.
-  All the real feature code lives in ./components/*.vue
-  =========================================================================
--->
 <script setup>
 import { ref } from 'vue'
 
@@ -18,7 +10,7 @@ import Payroll from './components/Payroll.vue'
 import PerformanceReviews from './components/PerformanceReviews.vue'
 import EmployeePortal from './components/EmployeePortal.vue'
 
-const authRole = ref('guest') // 'guest' | 'hr' | 'employee'
+const authRole = ref('guest') 
 const activeTab = ref('dashboard')
 const employeeSessionId = ref(null)
 
@@ -42,6 +34,14 @@ function logout() {
 
 <template>
   <div class="page-shell">
+    <!--
+      =========================================================================
+      OWNED BY: PERSON A (Auth & Dashboard / Integration Lead)
+      This file is now just a "shell" — it decides WHICH screen to show
+      (guest login / HR portal / employee portal) and which tab is active.
+      All the real feature code lives in ./components/*.vue
+      =========================================================================
+    -->
     <div class="gradient-orb orb-one"></div>
     <div class="gradient-orb orb-two"></div>
 
