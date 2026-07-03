@@ -68,7 +68,12 @@ function addEmployee() {
   })
 
   state.attendance.push({ employeeId: newId, present: 0, remote: 0, absent: 0, leaveDays: 0 })
-  state.payrollSource.push({ employeeId: newId, hoursWorked: 160, leaveDeductions: 0, finalSalary: 0 })
+  state.payrollSource.push({
+    employeeId: newId,
+    hoursWorked: 160,
+    leaveDeductions: 0,
+    finalSalary: Number(employeeForm.salary) / 12
+  })
 
   employeeForm.name = ''
   employeeForm.email = ''
@@ -102,6 +107,11 @@ function updateSelectedEmployee() {
   selectedEmployeeRecord.value.salary = Number(employeeEditForm.salary)
   selectedEmployeeRecord.value.startDate = employeeEditForm.startDate
   selectedEmployeeRecord.value.history = employeeEditForm.history.trim() || 'Updated through HR portal.'
+
+  const payrollRecord = state.payrollSource.find((entry) => entry.employeeId === selectedEmployeeRecord.value.id)
+  if (payrollRecord) {
+    payrollRecord.finalSalary = Number(employeeEditForm.salary) / 12
+  }
 }
 
 function removeSelectedEmployee() {

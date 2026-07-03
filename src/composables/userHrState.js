@@ -6,6 +6,9 @@ import payrollData from '../../payroll_data.json'
 const STORAGE_KEY = 'moderntech-hr-poc-state-v2'
 export const AUTH_USER = 'hr_admin'
 export const AUTH_PASSWORD = 'MT2026!'
+const PAYSLIP_OVERTIME_RATE = 180
+const PAYSLIP_TAX_RATE = 0.18
+const PAYSLIP_PENSION_RATE = 0.06
 
 function parseStartDateFromHistory(employmentHistory) {
   const yearMatch = /Joined in\s+(\d{4})/i.exec(employmentHistory ?? '')
@@ -135,6 +138,210 @@ export function getDateRangeLength(startDate, endDate) {
   return Math.floor((new Date(endDate) - new Date(startDate)) / oneDay) + 1
 }
 
+function getCurrentPayrollPeriod() {
+  return new Date().toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
+}
+
+function normalizeNumber(value, fallback = 0) {
+  const normalized = Number(value)
+  return Number.isFinite(normalized) ? normalized : fallback
+}
+
+function formatPayslipNumber(payslipId) {
+  return `MT-${String(payslipId).slice(-8)}`
+}
+
+export function calculatePayslip(employeeId, month = getCurrentPayrollPeriod()) {
+  const employee = state.employees.find((item) => item.id === employeeId)
+  if (!employee) return null
+
+  const payrollBaseline = state.payrollSource.find((entry) => entry.employeeId === employeeId)
+  const attendanceRecord = state.attendance.find((record) => record.employeeId === employeeId)
+
+  const baseMonthly = normalizeNumber(employee.salary, 0) / 12
+  const hoursWorked = normalizeNumber(payrollBaseline?.hoursWorked, 160)
+  const overtimeHours = Math.max(0, hoursWorked - 160)
+  const overtimePay = overtimeHours * PAYSLIP_OVERTIME_RATE
+  const leaveDeductions = normalizeNumber(payrollBaseline?.leaveDeductions, attendanceRecord?.leaveDays ?? 0)
+  const leaveDeductionAmount = leaveDeductions * 180
+  const grossPay = baseMonthly + overtimePay
+  const taxDeduction = grossPay * PAYSLIP_TAX_RATE
+  const pensionDeduction = baseMonthly * PAYSLIP_PENSION_RATE
+  const netPay = Math.max(0, grossPay - taxDeduction - pensionDeduction - leaveDeductionAmount)
+
+  const id = Date.now() + Math.floor(Math.random() * 1000)
+  return {
+    id,
+    slipNumber: formatPayslipNumber(id),
+    generatedAt: new Date().toISOString(),
+    month,
+    employeeId,
+    baseMonthly,
+    hoursWorked,
+    overtimeHours,
+    overtimeRate: PAYSLIP_OVERTIME_RATE,
+    overtimePay,
+    grossPay,
+    taxRate: PAYSLIP_TAX_RATE,
+    taxDeduction,
+    pensionRate: PAYSLIP_PENSION_RATE,
+    pensionDeduction,
+    leaveDeductions,
+    leaveDeductionAmount,
+    netPay
+  }
+}
+
+export function generatePayslipForEmployee(employeeId, month = getCurrentPayrollPeriod()) {
+  const payslip = calculatePayslip(employeeId, month)
+  if (!payslip) return null
+  state.generatedPayslips.unshift(payslip)
+  return payslip
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function buildPayslipPrintHtml(slip, employee) {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Payslip ${escapeHtml(slip.slipNumber ?? '')}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 24px;
+        color: #182028;
+      }
+      .sheet {
+        max-width: 780px;
+        margin: 0 auto;
+        border: 1px solid #d7dde2;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .header {
+        background: #eef6f3;
+        padding: 18px 22px;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 22px;
+      }
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 14px;
+        padding: 16px 22px;
+        border-bottom: 1px solid #e6eaed;
+      }
+      .meta div {
+        font-size: 14px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 10px 22px;
+        border-bottom: 1px solid #f0f2f5;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        color: #344452;
+      }
+      td:last-child,
+      th:last-child {
+        text-align: right;
+      }
+      .net {
+        background: #f6f8f9;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <article class="sheet">
+      <header class="header">
+        <h1>ModernTech Solutions - Digital Payslip</h1>
+      </header>
+      <section class="meta">
+        <div><strong>Payslip #:</strong> ${escapeHtml(slip.slipNumber ?? '')}</div>
+        <div><strong>Period:</strong> ${escapeHtml(slip.month ?? '')}</div>
+        <div><strong>Employee:</strong> ${escapeHtml(employee?.name ?? 'Unknown')}</div>
+        <div><strong>Role:</strong> ${escapeHtml(employee?.role ?? 'N/A')}</div>
+        <div><strong>Department:</strong> ${escapeHtml(employee?.department ?? 'N/A')}</div>
+        <div><strong>Generated:</strong> ${escapeHtml(formatDate(slip.generatedAt ?? new Date()))}</div>
+      </section>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Base Monthly Salary</td><td>${escapeHtml(formatCurrency(slip.baseMonthly ?? 0))}</td></tr>
+          <tr><td>Overtime (${escapeHtml(slip.overtimeHours ?? 0)} hrs @ ${escapeHtml(formatCurrency(slip.overtimeRate ?? 0))})</td><td>${escapeHtml(formatCurrency(slip.overtimePay ?? 0))}</td></tr>
+          <tr><td>Gross Pay</td><td>${escapeHtml(formatCurrency(slip.grossPay ?? 0))}</td></tr>
+          <tr><td>Tax Deduction (${escapeHtml(Math.round((slip.taxRate ?? 0) * 100))}%)</td><td>-${escapeHtml(formatCurrency(slip.taxDeduction ?? 0))}</td></tr>
+          <tr><td>Pension Deduction (${escapeHtml(Math.round((slip.pensionRate ?? 0) * 100))}%)</td><td>-${escapeHtml(formatCurrency(slip.pensionDeduction ?? 0))}</td></tr>
+          <tr><td>Leave Deduction (${escapeHtml(slip.leaveDeductions ?? 0)} day(s))</td><td>-${escapeHtml(formatCurrency(slip.leaveDeductionAmount ?? 0))}</td></tr>
+          <tr class="net"><td>Net Pay</td><td>${escapeHtml(formatCurrency(slip.netPay ?? 0))}</td></tr>
+        </tbody>
+      </table>
+    </article>
+  </body>
+</html>`
+}
+
+function resolvePayslip(slipOrId) {
+  const slip = typeof slipOrId === 'object'
+    ? slipOrId
+    : state.generatedPayslips.find((item) => item.id === slipOrId)
+
+  if (!slip) return null
+  const employee = state.employees.find((item) => item.id === slip.employeeId)
+  return { slip, employee }
+}
+
+function downloadBlobFile(blob, fileName) {
+  const objectUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(objectUrl)
+}
+
+export function downloadPayslipAsDoc(slipOrId) {
+  const resolved = resolvePayslip(slipOrId)
+  if (!resolved) return false
+  const { slip, employee } = resolved
+
+  const safeEmployeeName = String(employee?.name ?? 'employee').replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+  const safePeriod = String(slip.month ?? 'period').replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+  const fileName = `payslip-${safeEmployeeName}-${safePeriod}.doc`
+
+  const htmlDoc = buildPayslipPrintHtml(slip, employee)
+  const blob = new Blob([htmlDoc], { type: 'application/msword' })
+  downloadBlobFile(blob, fileName)
+  return true
+}
+
 // Composable entry point — this is what every component calls.
 export function useHrState() {
   return {
@@ -142,6 +349,9 @@ export function useHrState() {
     employeeById,
     payrollSourceByEmployee,
     persistState,
+    calculatePayslip,
+    generatePayslipForEmployee,
+    downloadPayslipAsDoc,
     formatCurrency,
     formatDate,
     formatTime,

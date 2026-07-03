@@ -8,11 +8,12 @@ const props = defineProps({
 })
 const emit = defineEmits(['logout'])
 
-const { state, employeeById, payrollSourceByEmployee, formatCurrency, formatDate, formatTime } = useHrState()
+const { state, employeeById, payrollSourceByEmployee, downloadPayslipAsDoc, formatCurrency, formatDate, formatTime } = useHrState()
 
 const employeeWorkMode = ref('On Site')
 const employeeClockMessage = ref('')
 const employeeClockMessageType = ref('info')
+const showMyPayslips = ref(false)
 
 const employeeSelfProfile = computed(() => employeeById.value[props.employeeSessionId] ?? null)
 
@@ -40,6 +41,12 @@ const employeeSelfPayroll = computed(() => payrollSourceByEmployee.value[props.e
 
 const employeeSelfLatestPayslip = computed(() => {
   return state.generatedPayslips.find((slip) => slip.employeeId === props.employeeSessionId) ?? null
+})
+
+const employeeSelfPayslips = computed(() => {
+  return state.generatedPayslips
+    .filter((slip) => slip.employeeId === props.employeeSessionId)
+    .sort((a, b) => new Date(b.generatedAt ?? 0) - new Date(a.generatedAt ?? 0))
 })
 
 function setEmployeeClockMessage(message, type = 'info') {
@@ -119,6 +126,14 @@ function clockOutEmployee() {
   }
 
   setEmployeeClockMessage('Clock-out captured and synced to HR attendance.', 'success')
+}
+
+function requestMyPayslips() {
+  showMyPayslips.value = true
+}
+
+function downloadMyPayslipDoc(slip) {
+  downloadPayslipAsDoc(slip)
 }
 </script>
 
@@ -224,6 +239,38 @@ function clockOutEmployee() {
             </div>
           </div>
           <p v-else class="small text-muted mb-0">No leave requests found for your profile.</p>
+        </article>
+      </div>
+
+      <div class="col-12">
+        <article class="panel-card p-3 p-lg-4">
+          <h3 class="section-title">My Digital Payslips</h3>
+          <div class="mb-3 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <p class="small text-muted mb-0">Payslips are only shown on request.</p>
+            <button class="btn btn-sm btn-outline-dark" type="button" @click="requestMyPayslips">Request My Payslips</button>
+          </div>
+
+          <div v-if="showMyPayslips && employeeSelfPayslips.length" class="d-flex flex-column gap-2">
+            <div v-for="slip in employeeSelfPayslips" :key="slip.id" class="payslip-card">
+              <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                  <div class="small"><strong>Period:</strong> {{ slip.month }}</div>
+                  <div class="small"><strong>Payslip #:</strong> {{ slip.slipNumber ?? `MT-${String(slip.id).slice(-8)}` }}</div>
+                  <div class="small"><strong>Generated:</strong> {{ formatDate(slip.generatedAt ?? new Date()) }}</div>
+                  <div class="small"><strong>Gross Pay:</strong> {{ formatCurrency(slip.grossPay ?? (slip.baseMonthly + slip.overtimePay)) }}</div>
+                </div>
+                <div class="text-end d-flex flex-column align-items-end gap-2">
+                  <div class="small text-muted">Net Pay</div>
+                  <div class="fw-bold fs-5">{{ formatCurrency(slip.netPay) }}</div>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" @click="downloadMyPayslipDoc(slip)">Download Document</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-else-if="showMyPayslips" class="small text-muted mb-0">No payslips available yet. HR can generate one from Payroll.</p>
+          <p v-else class="small text-muted mb-0">Click "Request My Payslips" to view available payslips.</p>
         </article>
       </div>
     </section>
