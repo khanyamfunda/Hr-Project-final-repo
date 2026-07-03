@@ -1,12 +1,7 @@
-<!--
-  =========================================================================
-  OWNED BY: PERSON B (Employee Data Lead)
-  Add and edit performance reviews for employees.
-  =========================================================================
--->
+
 <script setup>
 import { computed, reactive } from 'vue'
-import { useHrState } from '../composables/useHrState.js'
+import { useHrState } from '../composables/userHrState.js'
 
 const { state, employeeById } = useHrState()
 
