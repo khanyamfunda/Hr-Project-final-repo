@@ -8,44 +8,33 @@
 import { computed, ref } from 'vue'
 import { useHrState } from '../composables/userHrState.js'
 
-const { state, employeeById, payrollSourceByEmployee, formatCurrency } = useHrState()
+const { state, employeeById, payrollSourceByEmployee, generatePayslipForEmployee, downloadPayslipAsDoc, formatCurrency, formatDate } = useHrState()
 
 const selectedPayrollEmployeeId = ref(state.employees[0]?.id ?? 1)
 const selectedPayrollMonth = ref('June 2026')
+const requestedEmployeeId = ref(null)
 
 const selectedPayrollEmployee = computed(() => employeeById.value[selectedPayrollEmployeeId.value])
+const requestedEmployee = computed(() => employeeById.value[requestedEmployeeId.value] ?? null)
+const requestedEmployeePayslips = computed(() => {
+  if (!requestedEmployeeId.value) return []
+  return state.generatedPayslips
+    .filter((slip) => slip.employeeId === requestedEmployeeId.value)
+    .sort((a, b) => new Date(b.generatedAt ?? 0) - new Date(a.generatedAt ?? 0))
+})
 
 function generatePayslip() {
   const employee = selectedPayrollEmployee.value
   if (!employee) return
+  generatePayslipForEmployee(employee.id, selectedPayrollMonth.value)
+}
 
-  const attendanceRecord = state.attendance.find((record) => record.employeeId === employee.id)
-  const payrollBaseline = payrollSourceByEmployee.value[employee.id]
+function requestEmployeePayslips(employeeId) {
+  requestedEmployeeId.value = employeeId
+}
 
-  const overtimeHours = Math.max(
-    0,
-    payrollBaseline?.hoursWorked ? payrollBaseline.hoursWorked - 160 : (attendanceRecord?.remote ?? 0) * 2
-  )
-
-  const baseMonthly = payrollBaseline?.finalSalary ?? employee.salary / 12
-  const overtimePay = overtimeHours * 180
-  const taxDeduction = (baseMonthly + overtimePay) * 0.18
-  const pensionDeduction = baseMonthly * 0.06
-  const leaveDeductionAmount = (payrollBaseline?.leaveDeductions ?? 0) * 180
-  const netPay = baseMonthly + overtimePay - taxDeduction - pensionDeduction - leaveDeductionAmount
-
-  state.generatedPayslips.unshift({
-    id: Date.now(),
-    month: selectedPayrollMonth.value,
-    employeeId: employee.id,
-    baseMonthly,
-    overtimeHours,
-    overtimePay,
-    taxDeduction,
-    pensionDeduction,
-    leaveDeductionAmount,
-    netPay
-  })
+function downloadSlipDoc(slip) {
+  downloadPayslipAsDoc(slip)
 }
 </script>
 
@@ -99,24 +88,58 @@ function generatePayslip() {
         </div>
 
         <h3 class="section-title">Generated Payslips</h3>
-        <div class="d-flex flex-column gap-2">
-          <div v-for="slip in state.generatedPayslips" :key="slip.id" class="payslip-card">
+        <p class="small text-muted mb-2">Click an employee name to request and view only that employee's slips.</p>
+        <div class="table-responsive mb-3">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="employee in state.employees" :key="employee.id">
+                <td>
+                  <button class="btn btn-link p-0 text-decoration-none" type="button" @click="requestEmployeePayslips(employee.id)">
+                    {{ employee.name }}
+                  </button>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-dark" type="button" @click="requestEmployeePayslips(employee.id)">View Slips</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="requestedEmployee" class="small mb-2">
+          Showing slips for <strong>{{ requestedEmployee.name }}</strong>
+        </div>
+
+        <div class="d-flex flex-column gap-2" v-if="requestedEmployeeId">
+          <div v-for="slip in requestedEmployeePayslips" :key="slip.id" class="payslip-card">
             <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
               <div>
                 <strong>{{ employeeById[slip.employeeId]?.name }}</strong>
                 <div class="small text-muted">{{ slip.month }}</div>
+                <div class="small text-muted">{{ slip.slipNumber ?? `MT-${String(slip.id).slice(-8)}` }} | Generated {{ formatDate(slip.generatedAt ?? new Date()) }}</div>
                 <div class="small">Base: {{ formatCurrency(slip.baseMonthly) }} | Overtime: {{ formatCurrency(slip.overtimePay) }}</div>
+                <div class="small">Gross: {{ formatCurrency(slip.grossPay ?? (slip.baseMonthly + slip.overtimePay)) }} | Hours: {{ slip.hoursWorked ?? 0 }}</div>
                 <div class="small">Tax: {{ formatCurrency(slip.taxDeduction) }} | Pension: {{ formatCurrency(slip.pensionDeduction) }}</div>
                 <div class="small">Leave Deduction: {{ formatCurrency(slip.leaveDeductionAmount ?? 0) }}</div>
               </div>
-              <div class="text-end">
+              <div class="text-end d-flex flex-column align-items-end gap-2">
                 <div class="small text-muted">Net Pay</div>
                 <div class="fw-bold fs-5">{{ formatCurrency(slip.netPay) }}</div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-sm btn-outline-secondary" type="button" @click="downloadSlipDoc(slip)">Download Document</button>
+                </div>
               </div>
             </div>
           </div>
-          <p v-if="!state.generatedPayslips.length" class="text-muted mb-0">No payslips generated yet.</p>
+          <p v-if="!requestedEmployeePayslips.length" class="text-muted mb-0">No payslips found for this employee.</p>
         </div>
+        <p v-else class="text-muted mb-0">Select an employee to request payslips.</p>
       </article>
     </div>
   </section>
