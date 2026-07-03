@@ -7,7 +7,7 @@ import EmployeeManagement from './components/EmployeeManagement.vue'
 import LeaveRequests from './components/LeaveRequests.vue'
 import AttendanceTracking from './components/AttendanceTracking.vue'
 import Payroll from './components/Payroll.vue'
-import PerformanceReviews from './components/PerformanceReviews.vue'
+import PerformanceReviews from './components/PerfomanceReviews.vue'
 import EmployeePortal from './components/EmployeePortal.vue'
 
 const authRole = ref('guest') 
