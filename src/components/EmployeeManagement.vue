@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { useHrState } from '../composables/useHrState.js'
+import { useHrState } from '../composables/userHrState.js'
 
 const { state, formatDate } = useHrState()
 

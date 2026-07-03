@@ -1,7 +1,7 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { useHrState, AUTH_USER, AUTH_PASSWORD } from '../composables/useHrState.js'
+import { useHrState, AUTH_USER, AUTH_PASSWORD } from '../composables/userHrState.js'
 
 const emit = defineEmits(['hr-login', 'employee-login'])
 
