@@ -1,6 +1,6 @@
 import { computed, reactive, watch } from 'vue'
 import employeeInfoData from '../../employee_info.json'
-import attendanceData from '../../attendance.json'
+import attendanceData from '../../Attendance.json'
 import payrollData from '../../payroll_data.json'
 
 const STORAGE_KEY = 'moderntech-hr-poc-state-v3'
