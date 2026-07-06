@@ -3,7 +3,7 @@ import employeeInfoData from '../../employee_info.json'
 import attendanceData from '../../Attendance.json'
 import payrollData from '../../payroll_data.json'
 
-const STORAGE_KEY = 'moderntech-hr-poc-state-v2'
+const STORAGE_KEY = 'moderntech-hr-poc-state-v3'
 export const AUTH_USER = 'hr_admin'
 export const AUTH_PASSWORD = 'MT2026!'
 const PAYSLIP_OVERTIME_RATE = 180
@@ -108,6 +108,23 @@ function bootstrapFromLocalStorage() {
     state.performanceReviews = parsed.performanceReviews ?? state.performanceReviews
     state.payrollSource = parsed.payrollSource ?? state.payrollSource
     state.generatedPayslips = parsed.generatedPayslips ?? state.generatedPayslips
+
+    // Guard against stale empty snapshots that hide seeded JSON data.
+    if (!Array.isArray(state.employees) || state.employees.length === 0) {
+      state.employees = importedEmployees
+    }
+    if (!Array.isArray(state.attendance) || state.attendance.length === 0) {
+      state.attendance = importedAttendance
+    }
+    if (!Array.isArray(state.leaveRequests) || state.leaveRequests.length === 0) {
+      state.leaveRequests = importedLeaveRequests
+    }
+    if (!Array.isArray(state.payrollSource) || state.payrollSource.length === 0) {
+      state.payrollSource = importedPayrollSource
+    }
+    if (!Array.isArray(state.generatedPayslips) || state.generatedPayslips.length === 0) {
+      state.generatedPayslips = importedPayslips
+    }
   } catch {
     localStorage.removeItem(STORAGE_KEY)
   }
