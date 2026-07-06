@@ -34,14 +34,6 @@ function logout() {
 
 <template>
   <div class="page-shell">
-    <!--
-      =========================================================================
-      OWNED BY: PERSON A (Auth & Dashboard / Integration Lead)
-      This file is now just a "shell" — it decides WHICH screen to show
-      (guest login / HR portal / employee portal) and which tab is active.
-      All the real feature code lives in ./components/*.vue
-      =========================================================================
-    -->
     <div class="gradient-orb orb-one"></div>
     <div class="gradient-orb orb-two"></div>
 
