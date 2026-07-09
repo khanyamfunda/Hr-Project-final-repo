@@ -78,8 +78,4 @@ This submission bundle contains the following required media resources and asset
 * `/public` - Static system assets, custom logo structures, and interface styling anchors.
 * `README.md` - Technical setup documentation and structural overview.
 
----
-**Submission Metadata**  
-* **Due Date:** 10 July 2026 – 16:30  
-* **Target Grading Panel:** Matthew Brown, Tyhiesha Johnson, Asiphe Lange  
-* **Maximum Grade Base:** 100 Marks  
+ 
