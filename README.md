@@ -5,7 +5,8 @@ A comprehensive, web-based HR Management Single Page Application designed to rep
 
 
 ## Project Overview
-
+Built by 
+Nhlakanipho Luthuli , Khanya Mafunda , Phelisa Fani and Lukho Aphiwe Bija
 This application serves as a Front-End Proof of Concept built using Vue.js. The project directly addresses four critical operational pain points by replacing disconnected Excel files, scattered Word documents, leave request stored in chaotic email chains, payroll relying on
 complex,interconnected spreadsheets.
 
