@@ -79,13 +79,13 @@ This submission bundle contains the following required media resources and asset
 * `/public` - Static system assets, custom logo structures, and interface styling anchors.
 * `README.md` - Technical setup documentation and structural overview.
 
-## Login Password
-HR
+## HR Login Password
+
 * Username : hr_admin
 * Password : MT2026!
-EMPLOYEE
+## Employee Login Password
 * Username : Sibongile Nkosi
 * Email : sibongile.nkosi@moderntech.com
-* email : 
+  
 
  
